@@ -64,10 +64,9 @@ class QueryManager(query.Query):
 
     @commit
     def bulk_save_objects(self, entities, **kwargs):
-
         if False in {isinstance(e, self.klass) for e in entities}:
             raise TypeError(
-                f"All models should be of type {self._klass.__name__}"
+                f"All models should be of type {self.klass.__name__}"
             )
 
         self.session.bulk_save_objects(entities, **kwargs)
