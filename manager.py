@@ -45,8 +45,9 @@ def commit(func):
 
         try:
             return func(self, *args, **kwargs)
-        except:
+        except Exception as exception:
             self.session.rollback()
+            raise exception from None
         finally:
             self.session.commit()
 

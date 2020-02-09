@@ -9,12 +9,12 @@
 """
 import pytest
 
-from models import Parent, Child
+from model import Parent, Child
 
 
 def test_type_error_bulk_save_objects():
     with pytest.raises(TypeError):
-        assert Child.objects.bulk_save_objects([Parent(), Child()])
+        Child.objects.bulk_save_objects([Parent(), Child()])
 
 
 def test_parent_bulk_save_objects():
@@ -23,14 +23,8 @@ def test_parent_bulk_save_objects():
 
 
 def test_child_bulk_save_objects():
-    parent1 = Parent()
-    parent2 = Parent()
+    parent1, parent2 = Parent.objects.all()
 
-    # Create parents
-    Parent.objects.bulk_save_objects([parent1, parent2], return_defaults=True)
-    assert Parent.objects.count() == 2
-
-    # Create children
     children1 = [Child(parent_id=parent1.id) for _ in range(5)]
     children2 = [Child(parent_id=parent2.id) for _ in range(16)]
 
