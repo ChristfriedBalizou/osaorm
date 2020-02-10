@@ -142,19 +142,6 @@ class QueryManager(query.Query):
 
         return self.session.is_modified(entity, **kwargs)
 
-    def refresh(self, entity, **kwargs):
-        """Read sqlalchemy.orm.session.Session.refresh
-        from sqlalchemy documentation to understand how the
-        refresh works. This function is a wrapper
-        """
-
-        if not isinstance(entity, self.klass):
-            raise TypeError(
-                f"Entity should be of type {self.klass.__name__}"
-            )
-
-        self.session.refresh(entity, **kwargs)
-
 
 class Manager(object):
     """The Manager inherit from sqlalchemy.orm.session.Session
@@ -180,10 +167,7 @@ class Manager(object):
     def save(self, **kwargs):
         return QueryManager(self.klass).save(self, **kwargs)
 
-    def is_modified(self, *args, **kwargs):
+    def is_modified(self, **kwargs):
         return QueryManager(self.klass).is_modified(self, **kwargs)
-
-    def refresh(self, *args, **kwargs):
-        return QueryManager(self.klass).refresh(*args, **kwargs)
 
     id = Column(Integer, primary_key=True)

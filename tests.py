@@ -31,3 +31,19 @@ def test_child_bulk_save_objects():
     Child.objects.bulk_save_objects(children1 + children2, return_defaults=True)
     assert Child.objects.filter(Child.parent_id==parent1.id).count() == 5
     assert Child.objects.filter(Child.parent_id==parent2.id).count() == 16
+
+
+def test_save():
+    parent = Parent()
+    parent.save()
+
+    assert parent.id != None
+    assert Parent.objects.count() == 3
+
+
+def test_is_modified():
+    child = Child.objects.first()
+    assert child.is_modified() == False
+
+    child.parent_id = 0
+    assert child.is_modified() == True
