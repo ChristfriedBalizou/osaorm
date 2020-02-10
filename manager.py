@@ -119,6 +119,42 @@ class QueryManager(query.Query):
 
         self.session.bulk_save_objects(entities, **kwargs)
 
+    def save(self, entity, **kwargs):
+        """This function use session.Session.bulk_save_objects
+        to update or create new instance
+        """
+        self.bulk_save_objects(
+            [entity],
+            return_defaults=True,
+            **kwargs
+        )
+
+    def is_modified(self, entity, **kwargs):
+        """Read sqlalchemy.orm.session.Session.is_modified
+        from sqlalchemy documentation to understand how the
+        is_modified works. This function is a wrapper
+        """
+
+        if not isinstance(entity, self.klass):
+            raise TypeError(
+                f"Entity should be of type {self.klass.__name__}"
+            )
+
+        return self.session.is_modified(entity, **kwargs)
+
+    def refresh(self, entity, **kwargs):
+        """Read sqlalchemy.orm.session.Session.refresh
+        from sqlalchemy documentation to understand how the
+        refresh works. This function is a wrapper
+        """
+
+        if not isinstance(entity, self.klass):
+            raise TypeError(
+                f"Entity should be of type {self.klass.__name__}"
+            )
+
+        self.session.refresh(entity, **kwargs)
+
 
 class Manager(object):
     """The Manager inherit from sqlalchemy.orm.session.Session
@@ -130,11 +166,24 @@ class Manager(object):
     def __tablename__(cls):
         return csl.__name__.lower()
 
+    @property
+    def klass(self):
+        return self.__class__
+
     @classproperty
     def objects(cls):
         """All available methods under sqlalchemy.orm.query.Query
         are now available on objects attribute.
         """
         return QueryManager(cls)
+
+    def save(self, **kwargs):
+        return QueryManager(self.klass).save(self, **kwargs)
+
+    def is_modified(self, *args, **kwargs):
+        return QueryManager(self.klass).is_modified(self, **kwargs)
+
+    def refresh(self, *args, **kwargs):
+        return QueryManager(self.klass).refresh(*args, **kwargs)
 
     id = Column(Integer, primary_key=True)
