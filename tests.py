@@ -41,6 +41,13 @@ def test_save():
     assert Parent.objects.count() == 3
 
 
+def test_delete():
+    assert Parent.objects.filter_by(id=1).count() == 1
+    Parent.objects.filter_by(id=1).delete()
+
+    assert Parent.objects.filter_by(id=0).count() == 0
+
+
 def test_is_modified():
     child = Child.objects.first()
     assert child.is_modified() == False
