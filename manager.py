@@ -37,32 +37,80 @@ class classproperty(object):
         return self.func(cls)
 
 
-def commit(func):
-    """This function will automatically call commit
-    after each function call
+def transaction(instance, wrapped):
+    """Transaction decorator will surround
+    an sqlalchemy base function and handle
+    the transaction scope. Rollback in case an
+    exception happened otherwise commit the session
     """
-    def decorator(self, *args, **kwargs):
 
+    def wrapper(*args, **kwargs):
         try:
-            return func(self, *args, **kwargs)
+            result = wrapped(*args, **kwargs)
         except Exception as exception:
-            self.session.rollback()
+            instance.session.rollback()
             raise exception from None
+        else:
+            return result
         finally:
-            self.session.commit()
+            instance.session.commit()
 
-    return decorator
+    return wrapper
 
 
+def transactional(Class):
+    """This function will create a transactional
+    session. This will keep the session transaction
+    and allow rollback if required otherwise commit the
+    session and restart a new one.
+
+    #sqlalchemy.orm.session.Session.params.autocommit
+    """
+
+    class WrapperClass:
+
+        def __init__(self, *args, **kwargs):
+            self.wrapped = Class(*args, **kwargs)
+
+        def __getattribute__(self, name):
+            """This method will be called whenever any attribute of class
+            WrapperClass is accessed.
+
+            If the accessed method is part of the wrapped class
+            a transaction is opened around the method to rollback
+            in case of exception or commit if everything goes well.
+            """
+
+            try:
+                attribute = super(WrapperClass, self).__getattribute__(name)
+            except AttributeError:
+                pass
+            else:
+                return attribute
+
+            attribute = self.wrapped.__getattribute__(name)
+
+            if type(attribute) == type(self.__init__):
+                # Check if the attribute gotten is a method or an
+                # attribute. The transaction will only be apply to
+                # method's.
+                return transaction(self, attribute)
+
+            return attribute
+
+    return WrapperClass
+
+
+@transactional
 class QueryManager(query.Query):
 
     def __init__(self, klass):
 
         self.klass = klass
         self.session = session.Session(bind=ENGINE)
-        super(QueryManager, self).__init__(self.klass, session=self.session)
 
-    @commit
+        super().__init__(klass, session=self.session)
+
     def bulk_save_objects(self, entities, **kwargs):
         if False in {isinstance(e, self.klass) for e in entities}:
             raise TypeError(
