@@ -1,9 +1,9 @@
-# OSaORM
+# oSAORM
 
-Stand for Overrided Sqlalchemy ORM.
+Stand for `Overrided SQLAchemy ORM`.
 
-Django framework ORM has been from far the best ORM I used so fare in python.
-Recently switched to python after some longtime working with Django ORM make me
+Django framework ORM have been from far the best ORM I used so fare in python.
+Recently switched to SQLAlchemy after some longtime working with Django ORM make me
 realize how easy it was.
 
 The simplicity is the access to the database connection. Django ORM provide a
