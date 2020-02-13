@@ -7,10 +7,11 @@
 # +------------------------------------------------------------------------+
 
 import os
+import contextlib
 
 import sqlalchemy
-from sqlalchemy.orm import session, query
 from sqlalchemy import ForeignKey, Column, Integer
+from sqlalchemy.orm import query, sessionmaker
 from sqlalchemy.ext.declarative import declared_attr
 
 
@@ -20,6 +21,7 @@ SQLITE_DB = f"sqlite:///{CURRENT_DIRECTORY}/osaorm.db"
 """
 
 ENGINE = sqlalchemy.create_engine(SQLITE_DB, echo=True)
+Session = sessionmaker(bind=ENGINE)
 
 
 class classproperty(object):
@@ -37,79 +39,34 @@ class classproperty(object):
         return self.func(cls)
 
 
-def transaction(instance, wrapped):
-    """Transaction decorator will surround
-    an sqlalchemy base function and handle
-    the transaction scope. Rollback in case an
-    exception happened otherwise commit the session
+@contextlib.contextmanager
+def transaction_scope():
+    """Inspired from SQLalchemy managing transaction
+    https://docs.sqlalchemy.org/en/13/orm/session_transaction.html#managing-transactions
     """
+    sess = Session()
 
-    def wrapper(*args, **kwargs):
-        try:
-            result = wrapped(*args, **kwargs)
-        except Exception as exception:
-            instance.session.rollback()
-            raise exception from None
-        else:
-            return result
-        finally:
-            instance.session.commit()
-
-    return wrapper
+    try:
+        yield sess
+    except:
+        raise
+    else:
+        sess.commit()
+    finally:
+        sess.close()
 
 
-def transactional(Class):
-    """This function will create a transactional
-    session. This will keep the session transaction
-    and allow rollback if required otherwise commit the
-    session and restart a new one.
-
-    #sqlalchemy.orm.session.Session.params.autocommit
-    """
-
-    class WrapperClass:
-
-        def __init__(self, *args, **kwargs):
-            self.wrapped = Class(*args, **kwargs)
-
-        def __getattribute__(self, name):
-            """This method will be called whenever any attribute of class
-            WrapperClass is accessed.
-
-            If the accessed method is part of the wrapped class
-            a transaction is opened around the method to rollback
-            in case of exception or commit if everything goes well.
-            """
-
-            try:
-                attribute = super(WrapperClass, self).__getattribute__(name)
-            except AttributeError:
-                pass
-            else:
-                return attribute
-
-            attribute = self.wrapped.__getattribute__(name)
-
-            if type(attribute) == type(self.__init__):
-                # Check if the attribute gotten is a method or an
-                # attribute. The transaction will only be apply to
-                # method's.
-                return transaction(self, attribute)
-
-            return attribute
-
-    return WrapperClass
-
-
-@transactional
 class QueryManager(query.Query):
 
     def __init__(self, klass):
 
         self.klass = klass
-        self.session = session.Session(bind=ENGINE)
 
-        super().__init__(klass, session=self.session)
+        with transaction_scope() as transaction:
+            """Create a transaction scope which close after
+            after usage.
+            """
+            super(QueryManager, self).__init__(klass, session=transaction)
 
     def bulk_save_objects(self, entities, **kwargs):
         if False in {isinstance(e, self.klass) for e in entities}:
@@ -117,7 +74,8 @@ class QueryManager(query.Query):
                 f"All models should be of type {self.klass.__name__}"
             )
 
-        self.session.bulk_save_objects(entities, **kwargs)
+        with transaction_scope() as transaction:
+            return transaction.bulk_save_objects(entities, **kwargs)
 
     def save(self, entity, **kwargs):
         """This function use session.Session.bulk_save_objects
@@ -140,7 +98,8 @@ class QueryManager(query.Query):
                 f"Entity should be of type {self.klass.__name__}"
             )
 
-        return self.session.is_modified(entity, **kwargs)
+        with transaction_scope() as transaction:
+            return transaction.is_modified(entity, **kwargs)
 
 
 class Manager(object):
