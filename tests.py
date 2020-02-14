@@ -33,7 +33,7 @@ def test_child_bulk_save_objects():
     assert Child.objects.filter(Child.parent_id==parent2.id).count() == 16
 
 
-def test_saveand_update():
+def test_save_and_update():
     parent = Parent()
     parent.save()
 
