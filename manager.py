@@ -7,9 +7,10 @@
 # +------------------------------------------------------------------------+
 
 import os
+import contextlib
 
 import sqlalchemy
-from sqlalchemy.orm import session, query
+from sqlalchemy.orm import query, sessionmaker
 from sqlalchemy import ForeignKey, Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -20,6 +21,24 @@ SQLITE_DB = f"sqlite:///{CURRENT_DIRECTORY}/osaorm.db"
 """
 
 ENGINE = sqlalchemy.create_engine(SQLITE_DB, echo=True)
+Session = sessionmaker(bind=ENGINE, expire_on_commit=False)
+
+
+@contextlib.contextmanager
+def session_scope():
+    """Inspired from SQLalchemy managing transaction
+    https://docs.sqlalchemy.org/en/13/orm/session_transaction.html#managing-transactions
+    """
+    sess = Session(bind=ENGINE)
+
+    try:
+        yield sess
+    except Exception:
+        raise
+    else:
+        sess.commit()
+    finally:
+        sess.close()
 
 
 class classproperty(object):
@@ -45,15 +64,14 @@ def transaction(instance, wrapped):
     """
 
     def wrapper(*args, **kwargs):
-        try:
-            result = wrapped(*args, **kwargs)
-        except Exception as exception:
-            instance.session.rollback()
-            raise exception from None
-        else:
-            return result
-        finally:
-            instance.session.commit()
+
+        with session_scope() as sess:
+            instance.wrapped.session = sess
+            # Pass the session to the instance
+            # The session will be close after the
+            # `with` statement.
+
+            return wrapped(*args, **kwargs)
 
     return wrapper
 
@@ -107,9 +125,7 @@ class QueryManager(query.Query):
     def __init__(self, klass):
 
         self.klass = klass
-        self.session = session.Session(bind=ENGINE)
-
-        super().__init__(klass, session=self.session)
+        super().__init__(klass)
 
     def bulk_save_objects(self, entities, **kwargs):
         if False in {isinstance(e, self.klass) for e in entities}:
@@ -117,7 +133,7 @@ class QueryManager(query.Query):
                 f"All models should be of type {self.klass.__name__}"
             )
 
-        self.session.bulk_save_objects(entities, **kwargs)
+        return self.session.bulk_save_objects(entities, **kwargs)
 
     def save(self, entity, **kwargs):
         """This function use session.Session.bulk_save_objects
