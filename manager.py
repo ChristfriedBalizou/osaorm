@@ -21,7 +21,7 @@ SQLITE_DATABASE = f"sqlite:///{CURRENT_DIRECTORY}/osaorm.db"
 """
 
 ENGINE = sqlalchemy.create_engine(SQLITE_DATABASE, echo=True)
-Session = sessionmaker(bind=ENGINE, autocomit=True)
+Session = sessionmaker(bind=ENGINE, autocommit=True)
 ScopedSession = scoped_session(Session)
 
 
