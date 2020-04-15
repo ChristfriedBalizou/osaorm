@@ -66,7 +66,7 @@ User.objects.filter(User.age == 56)
 User.objects.filter_by(age=56)
 
 # Save a list of User(s)
-User.objects.bulk_save_objects([User() for _ in range(5)])
+User.bulk_save_objects([User() for _ in range(5)])
 ```
 
 ### Save
