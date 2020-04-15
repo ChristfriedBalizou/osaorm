@@ -11,7 +11,7 @@ import contextlib
 
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy import ForeignKey, Column, Integer
+from sqlalchemy import Column, Integer
 from sqlalchemy.ext.declarative import declared_attr
 
 

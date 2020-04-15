@@ -29,15 +29,16 @@ def test_child_bulk_save_objects():
     children2 = [Child(parent_id=parent2.id) for _ in range(16)]
 
     Child.bulk_save_objects(children1 + children2, return_defaults=True)
-    assert Child.objects.filter(Child.parent_id==parent1.id).count() == 5
-    assert Child.objects.filter(Child.parent_id==parent2.id).count() == 16
+
+    assert Child.objects.filter(Child.parent_id == parent1.id).count() == 5
+    assert Child.objects.filter(Child.parent_id == parent2.id).count() == 16
 
 
 def test_save():
     parent = Parent()
     parent.save()
 
-    assert parent.id != None
+    assert parent.id is not None
     assert Parent.objects.count() == 3
 
 
@@ -52,7 +53,7 @@ def test_update():
     child = Child()
     child.save()
 
-    assert child.parent_id == None
+    assert child.parent_id is None
     child.parent_id = parent.id
     child.save()
 
@@ -69,7 +70,7 @@ def test_delete():
 
 def test_is_modified():
     child = Child.objects.first()
-    assert child.is_modified() == False
+    assert child.is_modified() is False
 
     child.parent_id = 0
-    assert child.is_modified() == True
+    assert child.is_modified() is True
